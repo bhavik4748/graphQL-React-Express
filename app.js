@@ -2,6 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const graphqlHttp = require('express-graphql');
 const { buildSchema } = require('graphql');
+const config = require('./config');
+const mongoose = require('mongoose');
 
 const app = express();
 
@@ -55,12 +57,18 @@ app.use('/graphql', graphqlHttp({
             };
             //console.log(event);
             events.push(event);
-            console.log(events);
             return event;
         }
     },
     graphiql: true
 }));
 
-app.listen(8500);
+mongoose.connect(config.MONGODB_URI, { useNewUrlParser: true }).then(() => {
+    console.log('db connection established');
+    app.listen(config.PORT);
+}).catch(err = () => {
+    console.log(err);
+});
+
+
 
