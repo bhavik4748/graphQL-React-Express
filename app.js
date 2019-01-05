@@ -46,6 +46,7 @@ app.use('/graphql', graphqlHttp({
 
     type RootQuery{
         events:[ Event!]!
+        users:[User!]!
     }
 
     type RootMutation{
@@ -69,6 +70,15 @@ app.use('/graphql', graphqlHttp({
                 })
             }).catch(err => { throw err; });
         },
+
+        users: () => {
+            return User.find().then(result => {
+                return result.map(res => {
+                    return { ...res._doc, _id: res._doc._id.toString(), password: null }
+                })
+            }).catch(err => { throw err; });
+        },
+
         createEvent: (args) => {
             const event = new Event({
                 title: args.eventInput.title,
