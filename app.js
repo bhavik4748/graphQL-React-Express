@@ -11,9 +11,36 @@ const User = require('./models/user');
 
 const app = express();
 
-
-
 app.use(bodyParser.json());
+
+const events = eventIds => {
+    return Event.find({ _id: { $in: eventIds } })
+        .then(events => {
+            return events.map(event => {
+                console.log("event: " + event);
+                return {
+                    ...event._doc,
+                    _id: event.id,
+                    creator: user.bind(this, event.creator)
+                };
+            });
+        })
+        .catch(err => {
+            throw err;
+        });
+}
+const user = userId => {
+    return User.findById(userId).then(user => {
+        console.log(user);
+        return {
+            ...user._doc,
+            _id: user.id,
+            createEvents: events.bind(this, user._doc.createEvents)
+        }
+    }).catch(err => {
+        throw err;
+    });
+};
 
 app.use('/graphql', graphqlHttp({
     schema: buildSchema(`
@@ -24,12 +51,14 @@ app.use('/graphql', graphqlHttp({
         description:String!
         price:Float!
         date:String!
+        creator: User!
     }
 
     type User{
         _id:ID!
         email:String!
         password: String
+        createEvents:[Event]!
     }
 
     input EventInput {
@@ -62,21 +91,30 @@ app.use('/graphql', graphqlHttp({
     `),
     rootValue: {
         events: () => {
-            return Event.find().then(result => {
-                return result.map(res => {
-                    var t = res.date;
-                    t = new Date(t).toLocaleString();
-                    return { ...res._doc, _id: res._doc._id.toString(), date: t };
-                })
-            }).catch(err => { throw err; });
+            return Event.find()
+                .then(result => {
+                    return result.map(res => {
+                        var t = res.date;
+                        t = new Date(t).toLocaleString();
+                        return {
+                            ...res._doc,
+                            _id: res._doc._id.toString(),
+                            date: t,
+                            creator: user.bind(this, res._doc.creator)
+                        };
+                    })
+                }).catch(err => { throw err; });
         },
 
         users: () => {
-            return User.find().then(result => {
-                return result.map(res => {
-                    return { ...res._doc, _id: res._doc._id.toString(), password: null }
-                })
-            }).catch(err => { throw err; });
+            return User.find()
+                .populate('createEvents')
+                .then(result => {
+                    console.log(result);
+                    return result.map(res => {
+                        return { ...res._doc, _id: res._doc._id.toString(), password: null }
+                    })
+                }).catch(err => { throw err; });
         },
 
         createEvent: (args) => {
