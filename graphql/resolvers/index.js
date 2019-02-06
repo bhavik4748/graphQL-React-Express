@@ -35,6 +35,20 @@ const user = userId => {
     });
 };
 
+const singleEvent = async eventId => {
+    try {
+        const event = await Event.findById(eventId);
+        return {
+            ...event._doc,
+            _id: event.id,
+            creator: user.bind(this, event.creator)
+        };
+    }
+    catch (err) {
+        throw err;
+    }
+}
+
 module.exports = {
     events: () => {
         return Event.find()
@@ -65,11 +79,13 @@ module.exports = {
 
     bookings: async () => {
         try {
-            const bookings = Booking.find();
+            const bookings = await Booking.find();
             return bookings.map(booking => {
                 return {
                     ...booking._doc,
                     _id: booking.id,
+                    user: user.bind(this, booking._doc.user),
+                    event: singleEvent.bind(this, booking._doc.event),
                     createdAt: new Date(booking._doc.createdAt).toISOString(),
                     updatedAt: new Date(booking._doc.updatedAt).toISOString(),
                 }
@@ -147,10 +163,12 @@ module.exports = {
 
         const result = await booking.save();
         console.log("result:" + result);
-        return result;
+
         return {
             ...result._doc,
             _id: result.id,
+            user: user.bind(this, booking._doc.user),
+            event: singleEvent.bind(this, booking._doc.event),
             createdAt: new Date(result._doc.createdAt).toISOString(),
             updatedAt: new Date(result._doc.updatedAt).toISOString(),
         };
